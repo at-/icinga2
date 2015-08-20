@@ -31,7 +31,6 @@ using namespace icinga;
 static int l_NextDowntimeID = 1;
 static boost::mutex l_DowntimeMutex;
 static std::map<int, String> l_LegacyDowntimesCache;
-static std::map<String, Checkable::Ptr> l_DowntimesCache;
 static Timer::Ptr l_DowntimesExpireTimer;
 
 boost::signals2::signal<void (const Checkable::Ptr&, const Downtime::Ptr&, const MessageOrigin::Ptr&)> Checkable::OnDowntimeAdded;
@@ -60,7 +59,7 @@ String Checkable::AddDowntime(const String& author, const String& comment,
 		uid = id;
 
 	Downtime::Ptr downtime = new Downtime();
-	downtime->SetId(uid);
+	downtime->SetName(uid);
 	downtime->SetEntryTime(Utility::GetTime());
 	downtime->SetAuthor(author);
 	downtime->SetComment(comment);
@@ -101,7 +100,6 @@ String Checkable::AddDowntime(const String& author, const String& comment,
 	{
 		boost::mutex::scoped_lock lock(l_DowntimeMutex);
 		l_LegacyDowntimesCache[legacy_id] = uid;
-		l_DowntimesCache[uid] = this;
 	}
 
 	Log(LogNotice, "Checkable")
@@ -154,7 +152,6 @@ void Checkable::RemoveDowntime(const String& id, bool cancelled, const MessageOr
 	{
 		boost::mutex::scoped_lock lock(l_DowntimeMutex);
 		l_LegacyDowntimesCache.erase(legacy_id);
-		l_DowntimesCache.erase(id);
 	}
 
 	downtime->SetWasCancelled(cancelled);
@@ -241,8 +238,10 @@ String Checkable::GetDowntimeIDFromLegacyID(int id)
 
 Checkable::Ptr Checkable::GetOwnerByDowntimeID(const String& id)
 {
-	boost::mutex::scoped_lock lock(l_DowntimeMutex);
-	return l_DowntimesCache[id];
+	Downtime::Ptr dt = Downtime::GetByName(id);
+	if (!dt)
+		return Checkable::Ptr();
+	return dt->GetCheckable();
 }
 
 Downtime::Ptr Checkable::GetDowntimeByID(const String& id)
@@ -289,7 +288,6 @@ void Checkable::AddDowntimesToCache(void)
 			l_NextDowntimeID = legacy_id + 1;
 
 		l_LegacyDowntimesCache[legacy_id] = kv.first;
-		l_DowntimesCache[kv.first] = this;
 	}
 }
 

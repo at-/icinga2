@@ -1388,7 +1388,7 @@ Value ApiEvents::CommentAddedAPIHandler(const MessageOrigin::Ptr& origin, const 
 	Deserialize(comment, params->Get("comment"), true);
 
 	checkable->AddComment(comment->GetEntryType(), comment->GetAuthor(),
-	    comment->GetText(), comment->GetExpireTime(), comment->GetId(), origin);
+	    comment->GetText(), comment->GetExpireTime(), comment->GetName(), origin);
 
 	return Empty;
 }
@@ -1408,7 +1408,7 @@ void ApiEvents::CommentRemovedHandler(const Checkable::Ptr& checkable, const Com
 	params->Set("host", host->GetName());
 	if (service)
 		params->Set("service", service->GetShortName());
-	params->Set("id", comment->GetId());
+	params->Set("id", comment->GetName());
 
 	Dictionary::Ptr message = new Dictionary();
 	message->Set("jsonrpc", "2.0");
@@ -1523,7 +1523,7 @@ Value ApiEvents::DowntimeAddedAPIHandler(const MessageOrigin::Ptr& origin, const
 	    downtime->GetStartTime(), downtime->GetEndTime(),
 	    downtime->GetFixed(), downtime->GetTriggeredBy(),
 	    downtime->GetDuration(), downtime->GetScheduledBy(),
-	    downtime->GetId(), origin);
+	    downtime->GetName(), origin);
 
 	return Empty;
 }
@@ -1543,7 +1543,7 @@ void ApiEvents::DowntimeRemovedHandler(const Checkable::Ptr& checkable, const Do
 	params->Set("host", host->GetName());
 	if (service)
 		params->Set("service", service->GetShortName());
-	params->Set("id", downtime->GetId());
+	params->Set("id", downtime->GetName());
 
 	Dictionary::Ptr message = new Dictionary();
 	message->Set("jsonrpc", "2.0");

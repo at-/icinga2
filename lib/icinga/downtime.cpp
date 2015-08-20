@@ -19,11 +19,70 @@
 
 #include "icinga/downtime.hpp"
 #include "icinga/downtime.tcpp"
+#include "icinga/host.hpp"
 #include "base/utility.hpp"
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 using namespace icinga;
 
 REGISTER_TYPE(Downtime);
+
+String DowntimeNameComposer::MakeName(const String& shortName, const Object::Ptr& context) const
+{
+	Downtime::Ptr downtime = dynamic_pointer_cast<Downtime>(context);
+
+	if (!downtime)
+		return "";
+
+	String name = downtime->GetHostName();
+
+	if (!downtime->GetServiceName().IsEmpty())
+		name += "!" + downtime->GetServiceName();
+
+	name += "!" + shortName;
+
+	return name;
+}
+
+Dictionary::Ptr DowntimeNameComposer::ParseName(const String& name) const
+{
+	std::vector<String> tokens;
+	boost::algorithm::split(tokens, name, boost::is_any_of("!"));
+
+	if (tokens.size() < 2)
+		BOOST_THROW_EXCEPTION(std::invalid_argument("Invalid Downtime name."));
+
+	Dictionary::Ptr result = new Dictionary();
+	result->Set("host_name", tokens[0]);
+
+	if (tokens.size() > 2) {
+		result->Set("service_name", tokens[1]);
+		result->Set("name", tokens[2]);
+	} else {
+		result->Set("name", tokens[1]);
+	}
+
+	return result;
+}
+
+void Downtime::OnAllConfigLoaded(void)
+{
+	ConfigObject::OnAllConfigLoaded();
+
+	if (!GetCheckable())
+		BOOST_THROW_EXCEPTION(ScriptError("Downtime '" + GetName() + "' references a host/service which doesn't exist.", GetDebugInfo()));
+}
+
+Checkable::Ptr Downtime::GetCheckable(void) const
+{
+	Host::Ptr host = Host::GetByName(GetHostName());
+
+	if (GetServiceName().IsEmpty())
+		return host;
+	else
+		return host->GetServiceByShortName(GetServiceName());
+}
 
 bool Downtime::IsActive(void) const
 {

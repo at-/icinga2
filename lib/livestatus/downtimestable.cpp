@@ -100,7 +100,7 @@ Object::Ptr DowntimesTable::HostAccessor(const Value& row, const Column::ObjectA
 {
 	Downtime::Ptr downtime = static_cast<Downtime::Ptr>(row);
 
-	Checkable::Ptr checkable = Checkable::GetOwnerByDowntimeID(downtime->GetId());
+	Checkable::Ptr checkable = Checkable::GetOwnerByDowntimeID(downtime->GetName());
 
 	Host::Ptr host;
 	Service::Ptr service;
@@ -113,7 +113,7 @@ Object::Ptr DowntimesTable::ServiceAccessor(const Value& row, const Column::Obje
 {
 	Downtime::Ptr downtime = static_cast<Downtime::Ptr>(row);
 
-	Checkable::Ptr checkable = Checkable::GetOwnerByDowntimeID(downtime->GetId());
+	Checkable::Ptr checkable = Checkable::GetOwnerByDowntimeID(downtime->GetName());
 
 	Host::Ptr host;
 	Service::Ptr service;
@@ -160,7 +160,7 @@ Value DowntimesTable::TypeAccessor(const Value& row)
 Value DowntimesTable::IsServiceAccessor(const Value& row)
 {
 	Downtime::Ptr downtime = static_cast<Downtime::Ptr>(row);
-	Checkable::Ptr checkable = Checkable::GetOwnerByDowntimeID(downtime->GetId());
+	Checkable::Ptr checkable = Checkable::GetOwnerByDowntimeID(downtime->GetName());
 
 	return (dynamic_pointer_cast<Host>(checkable) ? 0 : 1);
 }

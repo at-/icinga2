@@ -30,7 +30,6 @@ using namespace icinga;
 static int l_NextCommentID = 1;
 static boost::mutex l_CommentMutex;
 static std::map<int, String> l_LegacyCommentsCache;
-static std::map<String, Checkable::Ptr> l_CommentsCache;
 static Timer::Ptr l_CommentsExpireTimer;
 
 boost::signals2::signal<void (const Checkable::Ptr&, const Comment::Ptr&, const MessageOrigin::Ptr&)> Checkable::OnCommentAdded;
@@ -54,7 +53,7 @@ String Checkable::AddComment(CommentType entryType, const String& author,
 		uid = id;
 
 	Comment::Ptr comment = new Comment();
-	comment->SetId(uid);;
+	comment->SetName(uid);;
 	comment->SetEntryTime(Utility::GetTime());
 	comment->SetEntryType(entryType);
 	comment->SetAuthor(author);
@@ -75,7 +74,6 @@ String Checkable::AddComment(CommentType entryType, const String& author,
 	{
 		boost::mutex::scoped_lock lock(l_CommentMutex);
 		l_LegacyCommentsCache[legacy_id] = uid;
-		l_CommentsCache[uid] = this;
 	}
 
 	OnCommentAdded(this, comment, origin);
@@ -123,7 +121,6 @@ void Checkable::RemoveComment(const String& id, const MessageOrigin::Ptr& origin
 	{
 		boost::mutex::scoped_lock lock(l_CommentMutex);
 		l_LegacyCommentsCache.erase(legacy_id);
-		l_CommentsCache.erase(id);
 	}
 
 	OnCommentRemoved(owner, comment, origin);
@@ -143,9 +140,10 @@ String Checkable::GetCommentIDFromLegacyID(int id)
 
 Checkable::Ptr Checkable::GetOwnerByCommentID(const String& id)
 {
-	boost::mutex::scoped_lock lock(l_CommentMutex);
-
-	return l_CommentsCache[id];
+	Comment::Ptr ct = Comment::GetByName(id);
+	if (!ct)
+		return Checkable::Ptr();
+	return ct->GetCheckable();
 }
 
 Comment::Ptr Checkable::GetCommentByID(const String& id)
@@ -184,7 +182,6 @@ void Checkable::AddCommentsToCache(void)
 			l_NextCommentID = legacy_id + 1;
 
 		l_LegacyCommentsCache[legacy_id] = kv.first;
-		l_CommentsCache[kv.first] = this;
 	}
 }
 

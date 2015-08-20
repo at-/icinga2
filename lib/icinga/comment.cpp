@@ -19,12 +19,71 @@
 
 #include "icinga/comment.hpp"
 #include "icinga/comment.tcpp"
+#include "icinga/host.hpp"
 #include "base/utility.hpp"
 #include "base/configtype.hpp"
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 using namespace icinga;
 
 REGISTER_TYPE(Comment);
+
+String CommentNameComposer::MakeName(const String& shortName, const Object::Ptr& context) const
+{
+	Comment::Ptr downtime = dynamic_pointer_cast<Comment>(context);
+
+	if (!downtime)
+		return "";
+
+	String name = downtime->GetHostName();
+
+	if (!downtime->GetServiceName().IsEmpty())
+		name += "!" + downtime->GetServiceName();
+
+	name += "!" + shortName;
+
+	return name;
+}
+
+Dictionary::Ptr CommentNameComposer::ParseName(const String& name) const
+{
+	std::vector<String> tokens;
+	boost::algorithm::split(tokens, name, boost::is_any_of("!"));
+
+	if (tokens.size() < 2)
+		BOOST_THROW_EXCEPTION(std::invalid_argument("Invalid Comment name."));
+
+	Dictionary::Ptr result = new Dictionary();
+	result->Set("host_name", tokens[0]);
+
+	if (tokens.size() > 2) {
+		result->Set("service_name", tokens[1]);
+		result->Set("name", tokens[2]);
+	} else {
+		result->Set("name", tokens[1]);
+	}
+
+	return result;
+}
+
+void Comment::OnAllConfigLoaded(void)
+{
+	ConfigObject::OnAllConfigLoaded();
+
+	if (!GetCheckable())
+		BOOST_THROW_EXCEPTION(ScriptError("Comment '" + GetName() + "' references a host/service which doesn't exist.", GetDebugInfo()));
+}
+
+Checkable::Ptr Comment::GetCheckable(void) const
+{
+	Host::Ptr host = Host::GetByName(GetHostName());
+
+	if (GetServiceName().IsEmpty())
+		return host;
+	else
+		return host->GetServiceByShortName(GetServiceName());
+}
 
 bool Comment::IsExpired(void) const
 {

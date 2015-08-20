@@ -26,6 +26,8 @@
 namespace icinga
 {
 
+class Checkable;
+
 /**
  * A service downtime.
  *
@@ -35,11 +37,16 @@ class I2_ICINGA_API Downtime : public ObjectImpl<Downtime>
 {
 public:
 	DECLARE_OBJECT(Downtime);
+	DECLARE_OBJECTNAME(Downtime);
+
+	intrusive_ptr<Checkable> GetCheckable(void) const;
 
 	bool IsActive(void) const;
 	bool IsTriggered(void) const;
 	bool IsExpired(void) const;
 
+protected:
+	virtual void OnAllConfigLoaded(void) override;
 };
 
 }

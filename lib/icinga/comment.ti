@@ -17,6 +17,9 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.             *
  ******************************************************************************/
 
+#include "base/configobject.hpp"
+#include "base/utility.hpp"
+
 library icinga;
 
 namespace icinga
@@ -35,17 +38,29 @@ enum CommentType
 	CommentFlapping = 3,
 	CommentAcknowledgement = 4
 };
+
+class I2_ICINGA_API CommentNameComposer : public NameComposer
+{
+public:
+	virtual String MakeName(const String& shortName, const Object::Ptr& context) const;
+	virtual Dictionary::Ptr ParseName(const String& name) const;
+};
 }}}
 
-class Comment
+class Comment : ConfigObject < CommentNameComposer
 {
-	[state] String id;
-	[state] double entry_time;
-	[state, enum] CommentType entry_type;
-	[state] String author;
-	[state] String text;
-	[state] double expire_time;
-	[state] int legacy_id;
+	[config, protected, required] name(Host) host_name;
+	[config] String service_name;
+	[config] double entry_time {
+		default {{{ return Utility::GetTime(); }}}
+	};
+	[config, enum] CommentType entry_type {
+		default {{{ return CommentUser; }}}
+	};
+	[config, required] String author;
+	[config, required] String text;
+	[config] double expire_time;
+	int legacy_id;
 };
 
 }

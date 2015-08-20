@@ -26,6 +26,8 @@
 namespace icinga
 {
 
+class Checkable;
+
 /**
  * A service comment.
  *
@@ -35,8 +37,14 @@ class I2_ICINGA_API Comment : public ObjectImpl<Comment>
 {
 public:
 	DECLARE_OBJECT(Comment);
+	DECLARE_OBJECTNAME(Comment);
+
+	intrusive_ptr<Checkable> GetCheckable(void) const;
 
 	bool IsExpired(void) const;
+
+protected:
+	virtual void OnAllConfigLoaded(void) override;
 };
 
 }

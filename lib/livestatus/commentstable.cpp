@@ -100,7 +100,7 @@ Object::Ptr CommentsTable::HostAccessor(const Value& row, const Column::ObjectAc
 {
 	Comment::Ptr comment = static_cast<Comment::Ptr>(row);
 
-	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetId());
+	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetName());
 
 	Host::Ptr host;
 	Service::Ptr service;
@@ -113,7 +113,7 @@ Object::Ptr CommentsTable::ServiceAccessor(const Value& row, const Column::Objec
 {
 	Comment::Ptr comment = static_cast<Comment::Ptr>(row);
 
-	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetId());
+	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetName());
 
 	Host::Ptr host;
 	Service::Ptr service;
@@ -165,7 +165,7 @@ Value CommentsTable::EntryTimeAccessor(const Value& row)
 Value CommentsTable::TypeAccessor(const Value& row)
 {
 	Comment::Ptr comment = static_cast<Comment::Ptr>(row);
-	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetId());
+	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetName());
 
 	if (!checkable)
 		return Empty;
@@ -179,7 +179,7 @@ Value CommentsTable::TypeAccessor(const Value& row)
 Value CommentsTable::IsServiceAccessor(const Value& row)
 {
 	Comment::Ptr comment = static_cast<Comment::Ptr>(row);
-	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetId());
+	Checkable::Ptr checkable = Checkable::GetOwnerByCommentID(comment->GetName());
 
 	if (!checkable)
 		return Empty;
