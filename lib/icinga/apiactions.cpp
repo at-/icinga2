@@ -39,10 +39,9 @@ REGISTER_APIACTION(delay_notifications, "Service;Host", &ApiActions::DelayNotifi
 REGISTER_APIACTION(acknowledge_problem, "Service;Host", &ApiActions::AcknowledgeProblem);
 REGISTER_APIACTION(remove_acknowledgement, "Service;Host", &ApiActions::RemoveAcknowledgement);
 REGISTER_APIACTION(add_comment, "Service;Host", &ApiActions::AddComment);
-REGISTER_APIACTION(remove_comment, "", &ApiActions::RemoveComment);
-REGISTER_APIACTION(remove_all_comments, "Service;Host", &ApiActions::RemoveAllComments);
+REGISTER_APIACTION(remove_comment, "Service;Host", &ApiActions::RemoveComment);
 REGISTER_APIACTION(schedule_downtime, "Service;Host", &ApiActions::ScheduleDowntime);
-REGISTER_APIACTION(remove_downtime, "", &ApiActions::RemoveDowntime);
+REGISTER_APIACTION(remove_downtime, "Service;Host", &ApiActions::RemoveDowntime);
 
 REGISTER_APIACTION(enable_passive_checks, "Service;Host", &ApiActions::EnablePassiveChecks);
 REGISTER_APIACTION(disable_passive_checks, "Service;Host", &ApiActions::DisablePassiveChecks);
@@ -300,27 +299,23 @@ Dictionary::Ptr ApiActions::AddComment(const ConfigObject::Ptr& object, const Di
 
 Dictionary::Ptr ApiActions::RemoveComment(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
 {
-	if (!params->Contains("comment_id"))
-		return ApiActions::CreateResult(403, "'comment_id' required.");
-
-	int comment_id = HttpUtility::GetLastParameter(params, "comment_id");
-
-	String rid = Service::GetCommentIDFromLegacyID(comment_id);
-	Service::RemoveComment(rid);
-
-	return ApiActions::CreateResult(200, "Successfully removed comment " + Convert::ToString(comment_id) + ".");
-}
-
-Dictionary::Ptr ApiActions::RemoveAllComments(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
-{
 	Checkable::Ptr checkable = static_pointer_cast<Checkable>(object);
 
-	if (!checkable)
-		return ApiActions::CreateResult(404, "Cannot remove comments from non-existent object");
+	if (!params->Contains("comment_id") && !checkable)
+		return ApiActions::CreateResult(403, "Either 'comment_id' or host/service object required.");
 
-	checkable->RemoveAllComments();
+	if (!params->Contains("comment_id")) {
+		int comment_id = HttpUtility::GetLastParameter(params, "comment_id");
 
-	return ApiActions::CreateResult(200, "Successfully removed all comments for " + checkable->GetName());
+		String rid = Service::GetCommentIDFromLegacyID(comment_id);
+		Service::RemoveComment(rid);
+
+		return ApiActions::CreateResult(200, "Successfully removed comment " + Convert::ToString(comment_id) + ".");
+	} else {
+		checkable->RemoveAllComments();
+
+		return ApiActions::CreateResult(200, "Successfully removed all comments for " + checkable->GetName());
+	}
 }
 
 Dictionary::Ptr ApiActions::EnableNotifications(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
@@ -425,15 +420,23 @@ Dictionary::Ptr ApiActions::DisableFlapDetection(const ConfigObject::Ptr& object
 
 Dictionary::Ptr ApiActions::RemoveDowntime(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
 {
-	if (!params->Contains("downtime_id"))
-		return ApiActions::CreateResult(403, "Downtime removal requires a downtime_id");
+	Checkable::Ptr checkable = static_pointer_cast<Checkable>(object);
 
-	int downtime_id = HttpUtility::GetLastParameter(params, "downtime_id");
+	if (!params->Contains("downtime_id") && !checkable)
+		return ApiActions::CreateResult(403, "Either 'downtime_id' or host/service object required.");
 
-	String rid = Service::GetDowntimeIDFromLegacyID(downtime_id);
-	Service::RemoveDowntime(rid, true);
+	if (!params->Contains("downtime_id")) {
+		int downtime_id = HttpUtility::GetLastParameter(params, "comment_id");
 
-	return ApiActions::CreateResult(200, "Successfully removed downtime with id " + Convert::ToString(downtime_id) + ".");
+		String rid = Service::GetDowntimeIDFromLegacyID(downtime_id);
+		Service::RemoveDowntime(rid, true);
+
+		return ApiActions::CreateResult(200, "Successfully removed downtime " + Convert::ToString(downtime_id) + ".");
+	} else {
+		checkable->RemoveAllDowntimes();
+
+		return ApiActions::CreateResult(200, "Successfully removed all downtimes for " + checkable->GetName());
+	}
 }
 
 Dictionary::Ptr ApiActions::EnableGlobalNotifications(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
