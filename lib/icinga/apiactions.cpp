@@ -29,6 +29,7 @@
 #include "remote/httputility.hpp"
 #include "base/utility.hpp"
 #include "base/convert.hpp"
+#include <fstream>
 
 using namespace icinga;
 
@@ -40,8 +41,10 @@ REGISTER_APIACTION(acknowledge_problem, "Service;Host", &ApiActions::Acknowledge
 REGISTER_APIACTION(remove_acknowledgement, "Service;Host", &ApiActions::RemoveAcknowledgement);
 REGISTER_APIACTION(add_comment, "Service;Host", &ApiActions::AddComment);
 REGISTER_APIACTION(remove_comment, "Service;Host", &ApiActions::RemoveComment);
+REGISTER_APIACTION(remove_comment_by_id, "", &ApiActions::RemoveCommentByID);
 REGISTER_APIACTION(schedule_downtime, "Service;Host", &ApiActions::ScheduleDowntime);
 REGISTER_APIACTION(remove_downtime, "Service;Host", &ApiActions::RemoveDowntime);
+REGISTER_APIACTION(remove_downtime_by_id, "", &ApiActions::RemoveDowntimeByID);
 
 REGISTER_APIACTION(enable_passive_checks, "Service;Host", &ApiActions::EnablePassiveChecks);
 REGISTER_APIACTION(disable_passive_checks, "Service;Host", &ApiActions::DisablePassiveChecks);
@@ -75,12 +78,9 @@ REGISTER_APIACTION(stop_global_executing_svc_checks, "", &ApiActions::StopGlobal
 REGISTER_APIACTION(start_global_executing_host_checks, "", &ApiActions::StartGlobalExecutingHostChecks);
 REGISTER_APIACTION(stop_global_executing_host_checks, "", &ApiActions::StopGlobalExecutingHostChecks);
 
-//TODO: add process related actions
-/*
 REGISTER_APIACTION(shutdown_process, "", &ApiActions::ShutdownProcess);
 REGISTER_APIACTION(restart_process, "", &ApiActions::RestartProcess);
-REGISTER_APIACTION(process_file, "", &ApiActions::ProcessFile);
-*/
+//REGISTER_APIACTION(process_file, "", &ApiActions::ProcessFile);
 
 Dictionary::Ptr ApiActions::CreateResult(int code, const String& status, const Dictionary::Ptr& additional)
 {
@@ -301,21 +301,25 @@ Dictionary::Ptr ApiActions::RemoveComment(const ConfigObject::Ptr& object, const
 {
 	Checkable::Ptr checkable = static_pointer_cast<Checkable>(object);
 
-	if (!params->Contains("comment_id") && !checkable)
-		return ApiActions::CreateResult(403, "Either 'comment_id' or host/service object required.");
+	if (!checkable)
+		return ApiActions::CreateResult(404, "Cannot remove comment form non-existent object");
 
-	if (!params->Contains("comment_id")) {
-		int comment_id = HttpUtility::GetLastParameter(params, "comment_id");
+	checkable->RemoveAllComments();
 
-		String rid = Service::GetCommentIDFromLegacyID(comment_id);
-		Service::RemoveComment(rid);
+	return ApiActions::CreateResult(200, "Successfully removed comments for " + checkable->GetName());
+}
 
-		return ApiActions::CreateResult(200, "Successfully removed comment " + Convert::ToString(comment_id) + ".");
-	} else {
-		checkable->RemoveAllComments();
+Dictionary::Ptr ApiActions::RemoveCommentByID(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
+{
+	if (!params->Contains("comment_id"))
+		return ApiActions::CreateResult(403, "Parameter 'comment_id' is required.");
 
-		return ApiActions::CreateResult(200, "Successfully removed all comments for " + checkable->GetName());
-	}
+	int comment_id = HttpUtility::GetLastParameter(params, "comment_id");
+
+	String rid = Service::GetCommentIDFromLegacyID(comment_id);
+	Service::RemoveComment(rid);
+
+	return ApiActions::CreateResult(200, "Successfully removed comment " + Convert::ToString(comment_id) + ".");
 }
 
 Dictionary::Ptr ApiActions::EnableNotifications(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
@@ -422,21 +426,25 @@ Dictionary::Ptr ApiActions::RemoveDowntime(const ConfigObject::Ptr& object, cons
 {
 	Checkable::Ptr checkable = static_pointer_cast<Checkable>(object);
 
-	if (!params->Contains("downtime_id") && !checkable)
-		return ApiActions::CreateResult(403, "Either 'downtime_id' or host/service object required.");
+	if (!checkable)
+		return ApiActions::CreateResult(404, "Cannot remove downtime for non-existent object");
 
-	if (!params->Contains("downtime_id")) {
-		int downtime_id = HttpUtility::GetLastParameter(params, "comment_id");
+	checkable->RemoveAllDowntimes();
 
-		String rid = Service::GetDowntimeIDFromLegacyID(downtime_id);
-		Service::RemoveDowntime(rid, true);
+	return ApiActions::CreateResult(200, "Successfully removed downtimes for " + checkable->GetName());
+}
 
-		return ApiActions::CreateResult(200, "Successfully removed downtime " + Convert::ToString(downtime_id) + ".");
-	} else {
-		checkable->RemoveAllDowntimes();
+Dictionary::Ptr ApiActions::RemoveDowntimeByID(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
+{
+	if (!params->Contains("downtime_id"))
+		return ApiActions::CreateResult(403, "Parameter 'downtime_id' is required.");
 
-		return ApiActions::CreateResult(200, "Successfully removed all downtimes for " + checkable->GetName());
-	}
+	int downtime_id = HttpUtility::GetLastParameter(params, "comment_id");
+
+	String rid = Service::GetDowntimeIDFromLegacyID(downtime_id);
+	Service::RemoveDowntime(rid, true);
+
+	return ApiActions::CreateResult(200, "Successfully removed downtime " + Convert::ToString(downtime_id) + ".");
 }
 
 Dictionary::Ptr ApiActions::EnableGlobalNotifications(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
@@ -635,28 +643,27 @@ Dictionary::Ptr ApiActions::ChangeRetryInterval(const ConfigObject::Ptr& object,
 }
 */
 
-//TODO: process actions
-/*
-Dictionary::Ptr ApiActions::RestartProcess(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
+Dictionary::Ptr ApiActions::ShutdownProcess(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
 {
 	Application::RequestShutdown();
 
-	return ApiActions::CreateResult(200, "I don't exist!");
+	return ApiActions::CreateResult(200, "Shutting down Icinga2");
 }
 
 Dictionary::Ptr ApiActions::RestartProcess(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
 {
 	Application::RequestRestart();
 
-	return ApiActions::CreateResult(200, "That's not how this works");
+	return ApiActions::CreateResult(200, "Restarting Icinga");
 }
 
+/*
 Dictionary::Ptr ApiActions::ProcessFile(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
 {
-	if (!params->Contains("file_name")
+	if (!params->Contains("file_name"))
 		return ApiActions::CreateResult(403, "Parameter 'file_name' is required");
 
-	String file = HttpUtility::GetLastParameter(params, "file_name")
+	String file = HttpUtility::GetLastParameter(params, "file_name");
 
 	bool del = true;
 	if (!params->Contains("delete") || !HttpUtility::GetLastParameter(params, "delete"))
@@ -684,6 +691,6 @@ Dictionary::Ptr ApiActions::ProcessFile(const ConfigObject::Ptr& object, const D
 	if (del)
 		(void) unlink(file.CStr());
 
-	return ApiActions::CreateResult(200, "Successfully processed " + (del?"and deleted ":"") + "file " + file);
+	return ApiActions::CreateResult(200, "Successfully processed " + (del ? "and deleted ": "") + "file " + file);
 }
 */
