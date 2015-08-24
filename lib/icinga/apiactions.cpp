@@ -45,6 +45,8 @@ REGISTER_APIACTION(remove_comment_by_id, "", &ApiActions::RemoveCommentByID);
 REGISTER_APIACTION(schedule_downtime, "Service;Host", &ApiActions::ScheduleDowntime);
 REGISTER_APIACTION(remove_downtime, "Service;Host", &ApiActions::RemoveDowntime);
 REGISTER_APIACTION(remove_downtime_by_id, "", &ApiActions::RemoveDowntimeByID);
+REGISTER_APIACTION(schedule_downtime, "Service;Host", &ApiActions::ScheduleDowntime);
+REGISTER_APIACTION(remove_downtime, "Service;Host", &ApiActions::RemoveDowntime);
 
 REGISTER_APIACTION(enable_passive_checks, "Service;Host", &ApiActions::EnablePassiveChecks);
 REGISTER_APIACTION(disable_passive_checks, "Service;Host", &ApiActions::DisablePassiveChecks);
@@ -444,7 +446,7 @@ Dictionary::Ptr ApiActions::RemoveDowntimeByID(const ConfigObject::Ptr& object, 
 	String rid = Service::GetDowntimeIDFromLegacyID(downtime_id);
 	Service::RemoveDowntime(rid, true);
 
-	return ApiActions::CreateResult(200, "Successfully removed downtime " + Convert::ToString(downtime_id) + ".");
+	return ApiActions::CreateResult(200, "Successfully removed downtime " + Convert::ToString(downtime_id) );
 }
 
 Dictionary::Ptr ApiActions::EnableGlobalNotifications(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
