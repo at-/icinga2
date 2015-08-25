@@ -29,7 +29,6 @@
 #include "remote/httputility.hpp"
 #include "base/utility.hpp"
 #include "base/convert.hpp"
-#include <fstream>
 
 using namespace icinga;
 
@@ -445,7 +444,7 @@ Dictionary::Ptr ApiActions::RemoveDowntimeByID(const ConfigObject::Ptr& object, 
 	String rid = Service::GetDowntimeIDFromLegacyID(downtime_id);
 	Service::RemoveDowntime(rid, true);
 
-	return ApiActions::CreateResult(200, "Successfully removed downtime " + Convert::ToString(downtime_id) + ".");
+	return ApiActions::CreateResult(200, "Successfully removed downtime " + Convert::ToString(downtime_id) );
 }
 
 Dictionary::Ptr ApiActions::EnableGlobalNotifications(const ConfigObject::Ptr& object, const Dictionary::Ptr& params)
